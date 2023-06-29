@@ -1,27 +1,3 @@
-#    Embedding RCT Health Economic Analysis using the Sheffield Type 2 Diabetes Treatment Model - version 3
-#    Copyright (C) 2023  Pollard,Pidd,Breeze,Brennan
-
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License along
-#    with this program; if not, write to the Free Software Foundation, Inc.,
-#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-#    Contact person: Dan Pollard, Email: d.j.pollard@sheffield.ac.uk, 
-#    Address: Regent Court, 30 Regent Court, Sheffield, United Kingdom, S1 4DA
-
-
-
-
-
 GenerateDetailedresults <- function(results_,population_, year_, alive_, GlobalVars_){
   #Deaths
   Dead <- sum(is.na(population_[,"F_ALLCAUSE"][alive_])==F)
@@ -255,6 +231,19 @@ GenerateDetailedresults <- function(results_,population_, year_, alive_, GlobalV
   results_["HEARTR", year_+1] <- mean(population_[,"HEART_R"][alive_])
   results_["WBC", year_+1] <- mean(population_[,"WBC"][alive_])
   results_["HAEM", year_+1] <- mean(population_[,"HAEM"][alive_])
+  
+  results_["GPVisits", year_+1] <- mean(population_[,"GP"][alive_])
+  results_["age", year_+1] <- mean(population_[,"AGE"][alive_])
+  results_["age_0", year_+1] <- mean(population_[,"AGE_0"][alive_])
+  
+  results_["PSA", year_+1]<-NA
+  
+  results_["MET", year_+1]<-sum(population_[,"MET"][alive_])
+  results_["MET2", year_+1]<-sum(population_[,"MET2"][alive_])
+  results_["INSU", year_+1]<-sum(population_[,"INSU"][alive_])
+  results_["HYP", year_+1]<-sum(population_[,"HYP"][alive_])
+  results_["INTVCOST", year_+1]<-mean(population_[,"INTVCOST"][alive_])
+  results_["REMISSION", year_+1]<-sum(population_[,"REMISSION"][alive_])
   
   return(results_)
   
