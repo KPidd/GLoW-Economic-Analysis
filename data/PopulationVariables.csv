@@ -5,6 +5,8 @@ T,? Left over from prevention model?
 AGE,Age in years
 MALE,"1=male, 0 = female"
 FEMALE,"1=female, 0 = male"
+WEIGHT,kg
+HEIGHT,cm
 AFRO,"1=Afro Carribean ancestory, 0= otherwise"
 INDIAN,"1=South Asian ancestory, 0= otherwise"
 DIAB_DUR,Diabetes duration in years
@@ -35,6 +37,7 @@ BMI_O_E_25,"1= current BMI is 25 or more, 0 = otherwise"
 LDL_O_35,"Knot, LDL values of more than 3.5mg/dL"
 eGFR_U_60,"Estimated glomerular filtration rate if under 60, 1 ml/min/1.73m^2"
 eGFR_O_60,"Estimated glomerular filtration rate if over 60, 1 ml/min/1.73m^2"
+REMISSION,"1= in remission (if HbA1c drops below a certain level), 0 otherwise."
 MET,"1 = on Metformin, 0 = otherswise"
 MET2,"1 = on 2nd line therapy, 0 = otherswise"
 INSU,"1 = on insulin, 0 = otherswise"
@@ -46,6 +49,9 @@ OST_E,"1 = has oestoarthritis this year, 0= otherwise"
 OST_H,"1 = has oestoarthritis in previous years, 0= otherwise"
 DEP_E,"1 = has depression this year, 0 = otherwise"
 DEP_H,"1 = has depression in a previous year, 0 = otherwise"
+INTVCOST,cost of receiving intervention (usual care or treatment arm)
+STATCOST,cost of being on statins
+HYPCOST,cost of receiving antihypertensive treatment
 DMCOST,Diabetes related cots
 CVDCOST,CVD related costs
 RETCOST,Blindness (retinopathy) related costs
@@ -118,3 +124,15 @@ p_CC,probability that someone will develop colorectal cancer this year
 p_DEP,probability that someone will develop depression
 p_OST,probability that someone will develop osteoarthritis
 GP,number of GP visits each year
+STAT,"1= prescribed statins, 0=not"
+HYP,"1= prescribed antihypertensices, 0=not"
+LIMITILL,"1= if had/have MI, Stroke, CHF, Renal Failure, Cancer (breast or colorectal), 0=otherwise"
+p_CHF_noRR,
+p_MI_noRR,
+p_STRO_noRR,
+p_DEATH_noRR,
+beta_conmean,the conditional mean from beta regression of treatment effect
+beta_convar,the conditional variance from beta regression of treatment effect
+beta_alpha,generate from conditional mean and var of beta regression
+beta_beta,generate from conditional mean and var of beta regression
+RAND_beta_reg,
