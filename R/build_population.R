@@ -1,25 +1,3 @@
-#    Embedding RCT Health Economic Analysis using the Sheffield Type 2 Diabetes Treatment Model - version 3
-#    Copyright (C) 2023   Pollard, Pidd, Breeze, Brennan, Thomas
-
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License along
-#    with this program; if not, write to the Free Software Foundation, Inc.,
-#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-#    Contact person: Dan Pollard, Email: d.j.pollard@sheffield.ac.uk, 
-#    Address: Regent Court, 30 Regent Court, Sheffield, United Kingdom, S1 4DA
-
-
-
 #' Generate the baseline population
 #' @param diab_diab_population_ is a matrix of baseline characteristics read into 
 #' this function
@@ -49,12 +27,19 @@ build_population <- function(diag_diab_population_, PopulationVariables_, Global
   population[, "MALE"] <- (-1*diag_diab_population_[, "Female"])+1
   population[, "FEMALE"] <- diag_diab_population_[, "Female"]
   
+  ##add height and weight
+  population[,"WEIGHT"]<-diag_diab_population_[,"Weight"]
+  population[,"HEIGHT"]<-diag_diab_population_[,"Height"]
   #Read in a dummy variable for Afro-caribean descent (1= afro-caribean, 0=otherwise)
   population[, "AFRO"] <- diag_diab_population_[,"AFRO"]
   population[,"INDIAN"] <- diag_diab_population_[,"INDIAN"]
   #Set the binary variable for smoking status
   population[, "SMO"] <- ifelse(diag_diab_population_[, "Smoking"]>0,1,0)
   #record the history of diabetes (1 = yes, 0 = no)
+  
+  #record medication
+  population[, "STAT"] <- diag_diab_population_[, "STATINS"]
+  population[, "HYP"] <- diag_diab_population_[, "ANTIHYP"] 
   
   population[, "AGE"] <- floor(diag_diab_population_[, "CURR_AGE"])
   population[, "MEN"] <- replace(population[, "MEN"], population[, "AGE"] > 51 & population[, "FEMALE"] == 1, 1)
@@ -127,8 +112,13 @@ build_population <- function(diag_diab_population_, PopulationVariables_, Global
   #add in values for first observations for each risk factor needed
   #in the absence of information this will be the baseline value
   population[,"HBA_0"] <- diag_diab_population_[,"Baseline_HbA1c"]
-  population[,"LDL_0"] <- diag_diab_population_[,"Baseline_LDL"]
-  population[,"HDL_0"] <- diag_diab_population_[,"Baseline_HDL"]
+  ##LDL at baseline is not estimated in THIN. Baseline/value at diagnosis LDL here could be measured using friedwald equation. The alternative isto use the baseline value from GLOW (ie current LDL).
+  #population[,"LDL_0"] <- diag_diab_population_[,"Baseline_LDL"]
+  #population[,"LDL_0"] <- diag_diab_population_[,"LDL"]
+  ##opted to select baseline value of LDL and HDL to ensure trajectory is more UKPDS like.
+  population[,"LDL_0"] <- (diag_diab_population_[,"LDL"]-1)
+  #population[,"HDL_0"] <- diag_diab_population_[,"Baseline_HDL"]
+  population[,"HDL_0"] <- diag_diab_population_[,"HDL"]+0.1
   population[,"HEART_R_0"] <- population[,"HEART_R"]
   population[,"HAEM_0"] <- population[,"HAEM"]
   population[,"WBC_0"] <- population[,"WBC"]
@@ -137,12 +127,15 @@ build_population <- function(diag_diab_population_, PopulationVariables_, Global
   population[,"SBP_0"] <- diag_diab_population_[,"Baseline_SBP"]
   
   #Give noone a history of Ulcers
-  population[,"ULCER_H"] <-  0
+  #population[,"ULCER_H"] <-  0
+  population[,"ULCER_H"] <-  diag_diab_population_[,"ULCER_H"]
   
   #Make all cause death missing, as missing indicates someone is alive in the code
   population[, "F_ALLCAUSE"] <- NA
   #Make smoking missing, so you can easily see whether smoking is assessed
   population[,"p_SMO"]<- NA
+  
+  population[,"RAND_beta_reg"]<- runif(n,0,1)
   
   return(population)
 }
