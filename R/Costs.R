@@ -1,39 +1,35 @@
-#    Embedding RCT Health Economic Analysis using the Sheffield Type 2 Diabetes Treatment Model - version 3
-#    Copyright (C) 2023   Pollard, Pidd, Breeze, Brennan, Thomas
-
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License along
-#    with this program; if not, write to the Free Software Foundation, Inc.,
-#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-#    Contact person: Dan Pollard, Email: d.j.pollard@sheffield.ac.uk, 
-#    Address: Regent Court, 30 Regent Court, Sheffield, United Kingdom, S1 4DA
-
-
 ##'@param population_ is the population matrix
 ##'@param parameters_ is a single row of the parameters matrix
 ##'@param year_ is the current year of the simulation
 ##'@param alive_ is a vector of TRUES and FLASES to indicate that a patient is alive or not
 ##'@param GlobalVars_ is the global variables matrix
-##'@param treatment_ is a text string indicating the treatment
-##'@param attend_se_ is a matrix indicating whether a person had  
 ##'@return population_ returns the population matrix
 
 
-calculate_costs <- function(population_, parameters_, year_, alive_, GlobalVars_,treatment_,attend_se_) {
+calculate_costs <- function(population_, parameters_, year_, alive_, GlobalVars_, random_numbs_, treatment_) {
   
-  population_[,"DMCOST"][alive_] <- population_[,"MET"][alive_]*parameters_[,"COST_MET"] + 
+    if(treatment_=="bl"& year_==0){
+      population_[,"INTVCOST"][alive_]<-parameters_[,"COST_DESMOND"]
+    }
+    else if(treatment_=="GLOW"& year_==0){
+      population_[,"INTVCOST"][alive_]<-parameters_[,"COST_DEW"]
+    }
+    else if(treatment_=="GLOW_beta_diff"& year_==0){
+      population_[,"INTVCOST"][alive_]<-parameters_[,"COST_DEW"]
+    } 
+    else{
+      population_[,"INTVCOST"][alive_]<-0
+    }
+      
+      
+    population_[,"DMCOST"][alive_] <- population_[,"MET"][alive_]*parameters_[,"COST_MET"] + 
     population_[,"MET2"][alive_] * parameters_[,"COST_MET2"] + 
     population_[,"INSU"][alive_] * parameters_[,"COST_INSU"]
+  
+  ##adding cost of stat
+  population_[,"STATCOST"][alive_] <- population_[,"STAT"][alive_]*parameters_[,"COST_STAT"]
+  ##adding cost of anti hypertensive treatment (receiving an additional cost the first year receiving statins - which in this case is on entry? as so additional people are prescribed statins) 
+  population_[,"HYPCOST"][alive_] <- population_[,"HYP"][alive_]*parameters_[,"COST_HYP"]
   
   population_[, "CVDCOST"][alive_] <- 
     population_[, "IHD_E"][alive_] * parameters_[,"COST_IHD_E"] + 
@@ -100,12 +96,14 @@ population_[, "DEPCOST"][alive_] <-
     population_[, "DEP_H"][alive_]* parameters_[,"COST_DEP"]
   
   ##GP
-population_[, "GP"][alive_] <- 0 #set to 0 for now, but call new GP function here
+population_ <- GPs(population_, parameters_, random_numbs_, year_,alive_)
   ##Other costs
 population_[, "OTHCOST"][alive_] <- 
-    population_[, "GP"][alive_] * parameters_[,"COST_GP"] + 
+    population_[, "GP"][alive_] * parameters_[,"COST_GP"]+
+    population_[, "STATCOST"][alive_]+population_[, "HYPCOST"][alive_] + 
     population_[,"PVD_E"][alive_]*0+
-    population_[,"PVD_H"][alive_]*0# note no cost was identified, but code will work if a parameter is added here
+    population_[,"PVD_H"][alive_]*0+# note no cost was identified, but code will work if a parameter is added here
+    population_[,"INTVCOST"][alive_]
 
 ##add in undiscounted costs
 population_[, "YearCOST"][alive_] <-population_[, "DMCOST"][alive_]+
@@ -113,14 +111,6 @@ population_[, "YearCOST"][alive_] <-population_[, "DMCOST"][alive_]+
   population_[, "RETCOST"][alive_]+population_[, "NEUCOST"][alive_]+
   population_[, "CANCOST"][alive_]+population_[, "OSTCOST"][alive_]+
   population_[, "DEPCOST"][alive_]+population_[, "OTHCOST"][alive_]
-
-##Add in intervention costs, Embedder costs + any SE courses attended
-population_ <- Intervention_costs_Embedding(treatment_,
-                                                    parameters_,
-                                                    population_,
-                                                    attend_se_,
-                                                    year_,
-                                                    alive_)
 
 #store cumulative costs
 population_[, "COST"][alive_] <- population_[, "COST"][alive_]+
@@ -133,49 +123,38 @@ population_[, "DiscCOST"][alive_] <- population_[, "DiscCOST"][alive_]+
   return(population_)
 }
 
-##'@param population_ is the population matrix
-##'@param parameter_ is a single row of the parameters matrix
-##'@param year_ is the current year of the simulation
-##'@param alive_ is a vector of TRUES and FLASES to indicate that a patient is alive or not
-##'@param attend_se_ is a matrix indicating whether each patient in the simulation 
-##'attends an SE course in each year
-##'@return population_ returns the population matrix
-
-Intervention_costs_Embedding <- function(treatment_,
-                                         parameter_, 
-                                         population_, 
-                                         attend_se_, 
-                                         year_,
-                                         alive_){
+##estimating GP utilisation 
+GPs <- function(population_, parameters_, random_numbs_, year_,alive_) {
+  #Work out if someone has a life limiting illness
+  population_[,"LIMITILL"][alive_] <- ifelse((population_[, "MI_E"][alive_]==1 | population_[, "MI_H"][alive_]==1 |
+                                                population_[, "STRO_E"][alive_]==1 | population_[, "STRO_H"][alive_]==1 |
+                                                population_[, "CHF_E"][alive_]==1 | population_[, "CHF_H"][alive_]==1 |
+                                                population_[, "RENAL_E"][alive_]==1 | population_[, "RENAL_H"][alive_]==1 |
+                                                population_[, "CANB_E"][alive_]==1 | population_[, "CANB_H"][alive_]==1 |
+                                                population_[, "CANC_E"][alive_]==1| population_[, "CANC_H"][alive_]==1),
+                                             1,
+                                             0)
   
   
-  #add in embedding costs for the first two years, if it is an embedding arm
-  if(treatment_ == "Embedding_MetaAnalysis_All"|
-     treatment_ == "Embedding_MetaAnalysis_PriandSS"|
-     treatment_ == "Embedding_MetaAnalysis_1yr"|
-     treatment_ == "Embedding_TrialEffect_All_1yr"|
-     treatment_ == "Embedding_TrialEffect_PriandSS_1yr"|
-     treatment_ == "Embedding_TrialEffect_All_2yr" | 
-     treatment_ == "Embedding_TrialEffect_PriandSS_2yr"|
-     treatment_ == "Embedding_TrialEffect_All"|
-     treatment_ == "Embedding_TrialEffect_PriandSS"){
-    if(year_ ==0|year_==1){
-      population_[,"YearCOST"][alive_] <- population_[,"YearCOST"][alive_] +
-        parameter_[, "COST_Embedding"]
-    }}
+  # calculate mean number of GP visits - calculated from HSE2019
+  population_[, "GP"][alive_]  <-     
+    parameters_[,"GP_CONS"]*population_[,"CONS"][alive_]+
+    parameters_[,"GP_AGE"]*population_[,"AGE"][alive_]+
+    parameters_[,"GP_MALE"]*ifelse(population_[,"FEMALE"][alive_]==1,0,1)+
+    parameters_[,"GP_BLACK"]*population_[,"AFRO"][alive_]+
+    parameters_[,"GP_BMI"]*population_[,"BMI"][alive_]+
+    parameters_[,"GP_ASIAN"]*population_[,"INDIAN"][alive_]+
+    parameters_[,"GP_LIMILL"]*population_[,"LIMITILL"][alive_]+
+    parameters_[,"GP_ANTIDEP"]*population_[,"DEP_E"][alive_]+
+    parameters_[,"GP_STAT"]*population_[,"STAT"][alive_]+
+    parameters_[,"GP_HYP"]*population_[,"HYP"][alive_]+
+    parameters_[,"GP_DM"]*population_[,"CONS"][alive_]
+  #Note: there is a bug in the old code where year isn't reset. That means this
+  # function initalises the population incorrectly (fixed in this version)
+  dispersion <- log(qgamma(random_numbs_[, "GP1", year_ + 1][alive_], 1/parameters_[,"GP_ALPHA"], 1/parameters_[,"GP_ALPHA"]))
+  population_[, "GP"][alive_]  <- (qpois(random_numbs_[, "GP2", year_ + 1][alive_], exp(population_[, "GP"][alive_]  + dispersion))) 
   
-  #add in SE costs
-  #work out who is in the population
-  inpop <- attend_se_[,1] %in% population_[,"ID"][alive_]
-  attend_se <- subset(attend_se_, inpop)
-  
-  #SE costs can be incurred in the first or second year of the simulation
-  if (year_ == 0){
-    population_[,"YearCOST"][alive_] <- population_[,"YearCOST"][alive_] +
-      attend_se[,2]*parameter_[, "COST_SE"]
-  }else if (year_ == 1){
-    population_[,"YearCOST"][alive_] <- population_[,"YearCOST"][alive_] +
-      attend_se[,3]*parameter_[, "COST_SE"]
-  }
+  #return the population
   return(population_)
+  
 }
