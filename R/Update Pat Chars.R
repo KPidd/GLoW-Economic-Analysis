@@ -1,25 +1,3 @@
-#    Embedding RCT Health Economic Analysis using the Sheffield Type 2 Diabetes Treatment Model - version 3
-#    Copyright (C) 2023  Pollard, Pidd, Breeze, Brennan, Thomas
-
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License along
-#    with this program; if not, write to the Free Software Foundation, Inc.,
-#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-#    Contact person: Dan Pollard, Email: d.j.pollard@sheffield.ac.uk, 
-#    Address: Regent Court, 30 Regent Court, Sheffield, United Kingdom, S1 4DA
-
-
-
 #'@param population_ is the population matrix
 #'@param HBA1c_underlying_ is the underling trajectory of HbA1C for each patient
 #'@param BMI_underlying_ is the underling trajectory of BMI for each patient
@@ -173,23 +151,47 @@ update_patchars <- function(population_,parameters_,alive_){
   #Call in the percentage of people on insulin for third line therapy
   percent_ins_trip <- parameters_[,"third_line_percent_ins"]
   HbA1c_esc_dual_to_third <- 9.78*percent_ins_trip+8.71*(1-percent_ins_trip)
+  
+  HbA1c_mono_to_remission <-6.5
     
   #update treatment lines
+  #from 1st line treatment back to no treatment (remission?)
+  population_[,"REMISSION"][alive_] <- ifelse(population_[,"MET"][alive_]==1 & population_[,"HBA"][alive_] < HbA1c_mono_to_remission,
+                                         1, 
+                                         population_[,"REMISSION"][alive_])
+  population_[,"MET"][alive_] <- ifelse(population_[,"MET"][alive_]==1 & population_[,"HBA"][alive_] < HbA1c_mono_to_remission,
+                                        0, 
+                                        population_[,"MET"][alive_])
+  #from remission to 1st line
+  population_[,"MET"][alive_] <- ifelse(population_[,"REMISSION"][alive_]==1 & population_[,"HBA"][alive_] >= HbA1c_mono_to_remission,
+                                              1, 
+                                              population_[,"MET"][alive_])
+  population_[,"REMISSION"][alive_] <- ifelse(population_[,"REMISSION"][alive_]==1 & population_[,"HBA"][alive_] >= HbA1c_mono_to_remission,
+                                        0, 
+                                        population_[,"REMISSION"][alive_])
+  
   #From 1st line to 2nd line
-  population_["MET"][alive_] < ifelse(population_[,"MET"][alive_]==1 & population_[,"HBA"][alive_] >= HbA1c_esc_mono_to_dual,
-                             0, 
-                             population_[,"MET"])
-  population_["MET2"][alive_] < ifelse(population_[,"MET"][alive_]==1 & population_[,"HBA"][alive_] >= HbA1c_esc_mono_to_dual,
+  population_[,"MET2"][alive_] <- ifelse(population_[,"MET"][alive_]==1 & population_[,"HBA"][alive_] >= HbA1c_esc_mono_to_dual,
                               1, 
                               population_[,"MET2"][alive_])
+  population_[,"MET"][alive_] <- ifelse(population_[,"MET"][alive_]==1 & population_[,"HBA"][alive_] >= HbA1c_esc_mono_to_dual,
+                             0, 
+                             population_[,"MET"][alive_])
+ 
   
   #From 2nd line to 3rd line
-  population_["MET2"] < ifelse(population_[,"MET2"][alive_]==1 & population_[,"HBA"][alive_] >= HbA1c_esc_dual_to_third,
-                              0, 
-                              population_[,"MET2"][alive_])
-  population_["INSU"] < ifelse(population_[,"MET2"][alive_]==1 & population_[,"HBA"][alive_] >= HbA1c_esc_dual_to_third,
+  population_[,"INSU"][alive_] <- ifelse(population_[,"MET2"][alive_]==1 & population_[,"HBA"][alive_] >= HbA1c_esc_dual_to_third,
                               1, 
                               population_[,"INSU"][alive_])
+  population_[,"MET2"][alive_] <- ifelse(population_[,"MET2"][alive_]==1 & population_[,"HBA"][alive_] >= HbA1c_esc_dual_to_third,
+                              0, 
+                              population_[,"MET2"][alive_])
+  
+  
+  
+  population_[,"HYPCOST"][alive_]<-ifelse(population_[, "HYP"][alive_] == 0 & population_[, "SBP"][alive_] >= 140,population_[,"HYPCOST"][alive_]+parameters_[,"COST_HYP1"]+parameters_[,"COST_HYP"],population_[,"HYPCOST"][alive_])
+  population_[,"HYP"][alive_] <-ifelse(population_[, "HYP"][alive_] == 0  & population_[, "SBP"][alive_] >= 140,population_[,"HYP"][alive_]+1,population_[,"HYP"][alive_])
+  
   
   return(population_)
 }
