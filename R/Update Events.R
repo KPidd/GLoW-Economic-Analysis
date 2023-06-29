@@ -1,27 +1,3 @@
-#    Embedding RCT Health Economic Analysis using the Sheffield Type 2 Diabetes Treatment Model - version 3
-#    Copyright (C) 2023   Pollard, Pidd, Breeze, Brennan, Thomas
-
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License along
-#    with this program; if not, write to the Free Software Foundation, Inc.,
-#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-#    Contact person: Dan Pollard, Email: d.j.pollard@sheffield.ac.uk, 
-#    Address: Regent Court, 30 Regent Court, Sheffield, United Kingdom, S1 4DA
-
-
-
-
-
 #' @param population_ is the population matrix returned by the 
 #' build_population_parrallel_premodel function
 #' @param parameters_ is the row of the parameters matrix that corresponds to this
@@ -40,9 +16,14 @@
 
 
 update_events_UKPDS82 <- function(population_, parameters_, treatment_, Year_, alive_,random_numbs_, LifeTables_){
-  
+
   #Calculate probabilities, note this will be 0 with a CHF history
   p_CHF <- First_CHF_UKPDS_82(population_,parameters_,parameters_[,"Diab_1stCHF_Rho"],treatment_,alive_)
+  population_[,"p_CHF_noRR"][alive_] <- p_CHF
+  ##apply relative risks of statins and anti hypertensives
+  p_CHF <- ifelse(population_[,"STAT"][alive_]==1, p_CHF*parameters_[,"RR_STAT_CHF"], p_CHF)
+  p_CHF <- ifelse(population_[,"HYP"][alive_]==1, p_CHF*parameters_[,"RR_HYP_CHF"], p_CHF)
+  p_CHF <- ifelse(p_CHF>1,1,p_CHF)
   #Record events and probs
   population_[,"p_CHF"][alive_] <- p_CHF
   population_[,"CHF_E"][alive_] <- ifelse(random_numbs_[,"CHF",Year_+1][alive_]<p_CHF,1,0)
@@ -55,6 +36,13 @@ update_events_UKPDS82 <- function(population_, parameters_, treatment_, Year_, a
   
   #Calculate probabilities of 1st MI, note this will 0 for those with a history of MI
   p_MI <- First_MI_UKPDS_82(population_, parameters_,parameters_[,"Diab_1stMI_Female_Rho"],treatment_, alive_)
+  population_[,"p_MI_noRR"][alive_] <- p_MI
+  ##apply relative risks of statins and anti hypertensives
+  p_MI <- ifelse(population_[,"STAT"][alive_]==1, p_MI*parameters_[,"RR_STAT_MI"], p_MI)
+  p_MI <- ifelse(population_[,"HYP"][alive_]==1, p_MI*parameters_[,"RR_HYP_MI"], p_MI)
+  ## calibration: Apply relative risk to MI probability 
+  p_MI <- p_MI*parameters_[,"CALIBRATION_RR_MI"]
+  p_MI <- ifelse(p_MI>1,1,p_MI)
   #Record events and probs
   population_[,"p_MI"][alive_] <- p_MI
   population_[,"MI_E"][alive_] <- ifelse(random_numbs_[,"MI1",Year_+1][alive_]<p_MI,1,0)
@@ -67,6 +55,13 @@ update_events_UKPDS82 <- function(population_, parameters_, treatment_, Year_, a
   
   #Calculate probabilities of 1st Stroke
   p_STRO <- First_Stroke_UKPDS_82(population_, parameters_, parameters_[,"Diab_1stStroke_Rho"], treatment_, alive_)
+  population_[,"p_STRO_noRR"][alive_] <- p_STRO
+  ##apply relative risks of statins and anti hypertensives
+  p_STRO <- ifelse(population_[,"STAT"][alive_]==1, p_STRO*parameters_[,"RR_STAT_STRO"], p_STRO)
+  p_STRO <- ifelse(population_[,"HYP"][alive_]==1, p_STRO*parameters_[,"RR_HYP_STRO"], p_STRO)
+  ## calibration: Apply relative risk to Stroke probability 
+  p_STRO <- p_STRO*parameters_[,"CALIBRATION_RR_STR"]
+  p_STRO <- ifelse(p_STRO>1,1,p_STRO)
   #Record events and probs
   population_[,"p_STRO"][alive_] <- p_STRO
   population_[,"STRO_E"][alive_] <- ifelse(random_numbs_[,"STRO",Year_+1][alive_]<p_STRO,1,0)
@@ -160,9 +155,14 @@ update_events_UKPDS82 <- function(population_, parameters_, treatment_, Year_, a
   #give each person the highest risk of death, their UKPDS82 ACM mortality or
   #current mortality based on the source of the lifetables
   p_DEATH_final <- ifelse(p_DEATH>=p_DEATH_LT,p_DEATH,p_DEATH_LT)
+  population_[,"p_DEATH_noRR"][alive_] <- p_DEATH_final
+  ##apply relative risks of statins and anti hypertensives
+  p_DEATH_final <- ifelse(population_[,"STAT"][alive_]==1, p_DEATH_final*parameters_[,"RR_STAT_MORT"], p_DEATH_final)
+  p_DEATH_final <- ifelse(population_[,"HYP"][alive_]==1, p_DEATH_final*parameters_[,"RR_HYP_MORT"], p_DEATH_final)
+  p_DEATH_final <- ifelse(p_DEATH_final>1,1,p_DEATH_final)
  
 
-  
+
  #If the patient dies, record FOTH as this year, otherwise set FOTH to NA
  population_[,"p_DEATH"][alive_] <- p_DEATH_final
  population_[,"F_ALLCAUSE"][alive_] <- ifelse(random_numbs_[,"DEATH",Year_+1][alive_]<=p_DEATH_final,Year_,NA)
