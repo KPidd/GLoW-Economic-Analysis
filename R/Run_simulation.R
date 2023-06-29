@@ -1,24 +1,3 @@
-#    Embedding RCT Health Economic Analysis using the Sheffield Type 2 Diabetes Treatment Model - version 3
-#    Copyright (C) 2023   Pollard, Pidd, Breeze, Brennan, Thomas
-
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License along
-#    with this program; if not, write to the Free Software Foundation, Inc.,
-#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-#    Contact person: Dan Pollard, Email: d.j.pollard@sheffield.ac.uk, 
-#    Address: Regent Court, 30 Regent Court, Sheffield, United Kingdom, S1 4DA
-
-
 ####'This function runs the model for a given set of patients and parameters
 ####'@param population_, is the population matrix
 ####'@param parameters_, is the full parameters matrix
@@ -52,17 +31,18 @@ run_simulation <- function(population_, parameters_, endtime_, treatment_, Globa
   HAEM_underlying   <- UKPDS_90_HAEM(population_,parameters_,endtime_)
   
   #Place to add Intervention effects
-  attend_se         <- initialise_intervention_dt_attendse(length(population_[,"ID"]), treatment_, parameters_)
-  HBA1c_INTV        <- initialise_intervention_dt_HbA1c(length(population_[,"ID"]),treatment_,parameters_,endtime_,GlobalVars_,attend_se)
-  BMI_INTV          <- initialise_intervention_dt_BMI(length(population_[,"ID"]),treatment_,parameters_,endtime_,GlobalVars_,attend_se)
-  SBP_INTV          <- initialise_intervention_dt_SBP(length(population_[,"ID"]),treatment_,parameters_,endtime_,GlobalVars_,attend_se)
-  HDL_INTV          <- initialise_intervention_dt_HDL(length(population_[,"ID"]),treatment_,parameters_,endtime_,GlobalVars_,attend_se)
-  LDL_INTV          <- initialise_intervention_dt_LDL(length(population_[,"ID"]),treatment_,parameters_,endtime_,GlobalVars_,attend_se)
-  
-  
+  HBA1c_INTV        <- initialise_intervention_dt_HbA1c(length(population_[,"ID"]),treatment_,parameters_,population_,endtime_, HBA1c_underlying, random_numbs_)
+  BMI_INTV          <- initialise_intervention_dt_BMI(length(population_[,"ID"]), population_,treatment_,parameters_,endtime_)
+  SBP_INTV          <- initialise_intervention_dt_SBP(length(population_[,"ID"]),treatment_,parameters_,endtime_)
+  HDL_INTV          <- initialise_intervention_dt_HDL(length(population_[,"ID"]),treatment_,parameters_,endtime_)
+  LDL_INTV          <- initialise_intervention_dt_LDL(length(population_[,"ID"]),treatment_,parameters_,endtime_)
   
   #start year at 0
   year <- 0
+  
+  #update population to have 12 month outcomes.
+  population_[,"HBA"]<-population_[,"HBA"]+HBA1c_INTV[,2]
+  population_[,"BMI"]<-population_[,"BMI"]+BMI_INTV[,2]
   
   #initialise the results matrix
   results <- GenerateResultsMatrix(GlobalVars_, endtime_)
@@ -74,7 +54,7 @@ run_simulation <- function(population_, parameters_, endtime_, treatment_, Globa
                             "Discounted Costs per Patient")
   }
   
-  #run the model up to the specified end time or so long as at least one person is alive
+  #run the model up to the specified end time or so long as at least two people are alive
   while (year < endtime_ & 
          (sum(is.na(population_[,"F_ALLCAUSE"]))) >= 1){
   #Get a logical vector indicating if people are alive, use the fact that FOTH
@@ -126,7 +106,7 @@ run_simulation <- function(population_, parameters_, endtime_, treatment_, Globa
   ##QALYs
   population_ <- calculate_QALYs(population_, parameters_,  year, alive, GlobalVars_)
   ##Costs
-  population_ <- calculate_costs(population_, parameters_, year, alive, GlobalVars_,treatment_,attend_se)
+  population_ <- calculate_costs(population_, parameters_, year, alive, GlobalVars_, random_numbs_, treatment_)
   
   #Record results
   results <- GenerateDetailedresults(results,population_, year, alive, GlobalVars_)
@@ -150,7 +130,8 @@ run_simulation <- function(population_, parameters_, endtime_, treatment_, Globa
                                 year)
   
   population_ <- update_patchars(population_, parameters_, alive)
-  
+  HBA1c_INTV  <- INTE_HBA1c_decay(GlobalVars_, treatment_,HBA1c_INTV,year, endtime_)
+  BMI_INTV  <- INTE_BMI_decay(GlobalVars_, treatment_,BMI_INTV,year, endtime_)
   #Unit test
   #Stop the model if there are events still in the population matrix
  if(sum(population_[,"MI_E"])  !=0|
@@ -183,12 +164,12 @@ run_simulation <- function(population_, parameters_, endtime_, treatment_, Globa
      GlobalVars_["run_psa", "Value"]==T){
     psaresults <- matrix(data=NA,nrow=1,ncol=24)
     #Life Years
-    psaresults[,1] <- sum(results["Undiscounted life years accrued",],na.rm=TRUE)/length(population_[,"ID"])
-    psaresults[,2] <- sum(results["Discounted life years accrued",],na.rm=TRUE)/length(population_[,"ID"])
-    psaresults[,3] <- sum(results["Undiscounted QALYs",],na.rm=TRUE)/length(population_[,"ID"])
-    psaresults[,4] <- sum(results["Discounted QALYs",],na.rm=TRUE)/length(population_[,"ID"])
-    psaresults[,5] <- sum(results["Undiscounted Costs",],na.rm=TRUE)/length(population_[,"ID"])
-    psaresults[,6] <- sum(results["Discounted Costs",],na.rm=TRUE)/length(population_[,"ID"])
+    psaresults[,1] <- sum(results["Undiscounted life years accrued",])/length(population_[,"ID"])
+    psaresults[,2] <- sum(results["Discounted life years accrued",])/length(population_[,"ID"])
+    psaresults[,3] <- sum(results["Undiscounted QALYs",])/length(population_[,"ID"])
+    psaresults[,4] <- sum(results["Discounted QALYs",])/length(population_[,"ID"])
+    psaresults[,5] <- sum(results["Undiscounted Costs",])/length(population_[,"ID"])
+    psaresults[,6] <- sum(results["Discounted Costs",])/length(population_[,"ID"])
     #10 year histories
     psaresults[,7] <- results["1st MI Hist",11]
     psaresults[,8] <- results["2nd MI Hist",11]
