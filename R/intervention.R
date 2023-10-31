@@ -8,23 +8,27 @@
 
   
 ##this function calls in the the correct intervention function depending on which treatment arm is being run
+##  "DEW" is the intervention and "DE" will be ran if applying no treatment effect. 
+##  "GLOW_beta_treat" or GLOW_beta_bl" apply the beta regression approach to find 12-month HbA1c just for intervention arm or baseline arm, while 
+##  "GLOW_beta_diff" estimated both the treatment and baseline 12 month outcomes for HbA1c and finds the difference - this is the treatment effect that is applied.
 initialise_intervention_dt_HbA1c <- function(n_,treatment_, parameters_,population_,endtime_,HBA1c_underlying_, random_numbs_) {
   INTE_A1c <- matrix(data=NA, nrow = n_, ncol =endtime_+2)
   INTE_A1c[,1] <- 1:n_ #make the first column equivalent to the patient ID for matching later on
-  if(treatment_ == "GLOW"){
+  if(treatment_ == "DEW"){
     INTE_A1c[,2] <- parameters_[,"intv_effect_GLOW_Hba1c"]
   }else if(treatment_ == "GLOW_beta_treat"){
-    INTE_A1c[,2]<-INTE_HBA1c_12m_1(parameters_, population_, treatment_)-HBA1c_underlying_[,"1"]
+    INTE_A1c[,2]<-INTE_HBA1c_12m_DEW(parameters_, population_, treatment_,random_numbs_)-HBA1c_underlying_[,"1"]
   }else if(treatment_ == "GLOW_beta_bl"){
-    INTE_A1c[,2]<-INTE_HBA1c_12m_2(parameters_, population_, treatment_)-HBA1c_underlying_[,"1"]
+    INTE_A1c[,2]<-INTE_HBA1c_12m_DE(parameters_, population_, treatment_,random_numbs_)-HBA1c_underlying_[,"1"]
   }else if(treatment_ == "GLOW_beta_diff"){
-    INTE_A1c[,2]<-(INTE_HBA1c_12m_1(parameters_, population_, treatment_,random_numbs_)-HBA1c_underlying_[,"1"])-(INTE_HBA1c_12m_2(parameters_, population_, treatment_,random_numbs_)-HBA1c_underlying_[,"1"])
+    INTE_A1c[,2]<-(INTE_HBA1c_12m_DEW(parameters_, population_, treatment_,random_numbs_)-HBA1c_underlying_[,"1"])-(INTE_HBA1c_12m_DE(parameters_, population_, treatment_,random_numbs_)-HBA1c_underlying_[,"1"])
   }else{ #if no treatment option is selected, leave them at baseline values
     INTE_A1c[,2:(endtime_+2)] <- 0
   }
   
   return(INTE_A1c)
 }
+
 ##this function allows the initial 12 month treatment to decay linearly for the assumed duration of treatment effect.
 INTE_HBA1c_decay<-function(GlobalVars_, treatment_,HBA1c_INTV,year_, endtime_){
   if(year_<(as.numeric(GlobalVars["Treatment_effect_duration_HBA","Value" ]))){
@@ -47,7 +51,7 @@ INTE_HBA1c_decay<-function(GlobalVars_, treatment_,HBA1c_INTV,year_, endtime_){
 initialise_intervention_dt_BMI <- function(n_,population_,treatment_, parameters_,endtime_) {
   INTE_BMI <- matrix(data=NA, nrow = n_, ncol =endtime_+2)
   INTE_BMI[,1] <- 1:n_ #make the first column equivalent to the patient ID for matching later on
-  if(treatment_ == "GLOW"){
+  if(treatment_ == "DEW"|treatment_ == "GLOW_beta_diff"){
     INTE_BMI[,2] <- parameters_[,"intv_effect_GLOW_BMI"]
   }else{ #if no treatment option is selected, leave them at baseline values
     INTE_BMI[,2:(endtime_+2)] <- 0
@@ -87,103 +91,104 @@ initialise_intervention_dt_BMI_2 <- function(n_,population_,treatment_, paramete
 
 
 
-####beta regression fucntions
+####beta regression functions
 ##function to find the 12 month treatment effect difference for hba1c from 0 from beta regression
 ##population_[,"RAND_beta_reg"]
 
 ####finds 12 month HbA1c had the individual received treatment DEW
-INTE_HBA1c_12m_1<-function(parameters_, population_, treatment_, random_numbs_){
+INTE_HBA1c_12m_DEW<-function(parameters_, population_, treatment_, random_numbs_){
   
-  beta_conmean_1<-GLOW_12m_intervention_effect_mean_1(parameters_, population_, treatment_)
-  beta_convar_1<-GLOW_12m_intervention_effect_var_1(parameters_, population_, treatment_)
-  beta_alpha_1<-(beta_conmean_1*(((beta_conmean_1*(1-beta_conmean_1))/beta_convar_1)-1))
-  beta_beta_1<-((1-beta_conmean_1)/beta_conmean_1)*beta_alpha_1
-  INTE_HBA1c_12m_1<-qbeta(random_numbs_[,"OST",75],beta_alpha_1,beta_beta_1)
+  beta_conmean_DEW<-GLOW_12m_intervention_effect_mean_DEW(parameters_, population_, treatment_)
+  beta_convar_DEW<-GLOW_12m_intervention_effect_var_DEW(parameters_, population_, treatment_)
+  beta_alpha_DEW<-(beta_conmean_DEW*(((beta_conmean_DEW*(1-beta_conmean_DEW))/beta_convar_DEW)-1))
+  beta_beta_DEW<-((1-beta_conmean_DEW)/beta_conmean_DEW)*beta_alpha_DEW
+  INTE_HBA1c_12m_DEW<-qbeta(0.5,beta_alpha_DEW,beta_beta_DEW)
   ##converting it back from 0,1 interval (using min and max of 12 month hba1c in GLOW)
-  INTE_HBA1c_12m_1<-(INTE_HBA1c_12m_1*(17.15595-4.162993))+4.162993
-  return(INTE_HBA1c_12m_1)
+  INTE_HBA1c_12m_DEW<-(INTE_HBA1c_12m_DEW*(17.15595-4.162993))+4.162993
+  return(INTE_HBA1c_12m_DEW)
   
 }
+#random_numbs_[,"OST",75]
 ####finds 12 month HbA1c had the individual received usual care DE
-INTE_HBA1c_12m_2<-function(parameters_, population_, treatment_,random_numbs_){
+INTE_HBA1c_12m_DE<-function(parameters_, population_, treatment_,random_numbs_){
   
-  beta_conmean_2<-GLOW_12m_intervention_effect_mean_2(parameters_, population_, treatment_)
-  beta_convar_2<-GLOW_12m_intervention_effect_var_2(parameters_, population_, treatment_)
-  beta_alpha_2<-beta_conmean_2*(((beta_conmean_2*(1-beta_conmean_2))/beta_convar_2)-1)
-  beta_beta_2<-((1-beta_conmean_2)/beta_conmean_2)*beta_alpha_2
-  INTE_HBA1c_12m_2<-qbeta(random_numbs_[,"OST",75],beta_alpha_2,beta_beta_2)
+  beta_conmean_DE<-GLOW_12m_intervention_effect_mean_DE(parameters_, population_, treatment_)
+  beta_convar_DE<-GLOW_12m_intervention_effect_var_DE(parameters_, population_, treatment_)
+  beta_alpha_DE<-beta_conmean_DE*(((beta_conmean_DE*(1-beta_conmean_DE))/beta_convar_DE)-1)
+  beta_beta_DE<-((1-beta_conmean_DE)/beta_conmean_DE)*beta_alpha_DE
+  INTE_HBA1c_12m_DE<-qbeta(0.5,beta_alpha_DE,beta_beta_DE)
   ##converting it back from 0,1 interval (using min and max of 12 month hba1c in GLOW)
-  INTE_HBA1c_12m_2<-(INTE_HBA1c_12m_2*(17.15595-4.162993))+4.162993
-  return(INTE_HBA1c_12m_2)
+  INTE_HBA1c_12m_DE<-(INTE_HBA1c_12m_DE*(17.15595-4.162993))+4.162993
+  return(INTE_HBA1c_12m_DE)
   
 }
 ##adding treatment effect
 ###y~B(U,Var)
 
 ###conditional mean of treatment group DEW
-GLOW_12m_intervention_effect_mean_1<-function(parameters_, population_, treatment_){
-  fitted_value<-matrix(parameters_[,"beta_intercept"]
-                       +parameters_[,"beta_hba1c_bl"]*population_[,"HBA"]
-                       +parameters_[,"beta_treatment"]*1 
-                       +parameters_[,"beta_female"]*population_[,"FEMALE"]
-                       +parameters_[,"beta_dm_duration_1_3"]*ifelse(population_[,"DIAB_DUR"]==1,0,1))
+GLOW_12m_intervention_effect_mean_DEW<-function(parameters_, population_, treatment_){
+  fitted_value<-matrix(parameters_[,"beta_intercept_model1"]
+                       +parameters_[,"beta_hba1c_bl_model1"]*population_[,"HBA"]
+                       +parameters_[,"beta_treatment_model1"]*1 
+                       +parameters_[,"beta_male_model1"]*population_[,"MALE"]
+                       +parameters_[,"beta_dm_duration_1_model1"]*ifelse(population_[,"DIAB_DUR"]==1,1,0))
   
-  beta_conmean_1<-(exp(fitted_value)/(1+exp(fitted_value)))
+  beta_conmean_DEW<-(exp(fitted_value)/(1+exp(fitted_value)))
   
-  return(beta_conmean_1)
+  return(beta_conmean_DEW)
   
   
 }
 ###conditional mean of baseline group DE 
-GLOW_12m_intervention_effect_mean_2<-function(parameters_, population_, treatment_){
-  fitted_value<-matrix(parameters_[,"beta_intercept"]
-                       +parameters_[,"beta_hba1c_bl"]*population_[,"HBA"]
-                       +parameters_[,"beta_treatment"]*2 
-                       +parameters_[,"beta_female"]*population_[,"FEMALE"]
-                       +parameters_[,"beta_dm_duration_1_3"]*ifelse(population_[,"DIAB_DUR"]==1,0,1))
+GLOW_12m_intervention_effect_mean_DE<-function(parameters_, population_, treatment_){
+  fitted_value<-matrix(parameters_[,"beta_intercept_model1"]
+                       +parameters_[,"beta_hba1c_bl_model1"]*population_[,"HBA"]
+                       +parameters_[,"beta_treatment_model1"]*0 
+                       +parameters_[,"beta_male_model1"]*population_[,"MALE"]
+                       +parameters_[,"beta_dm_duration_1_model1"]*ifelse(population_[,"DIAB_DUR"]==1,1,0))
   
-  beta_conmean_2<-(exp(fitted_value)/(1+exp(fitted_value)))
+  beta_conmean_DE<-(exp(fitted_value)/(1+exp(fitted_value)))
   
-  return(beta_conmean_2)
+  return(beta_conmean_DE)
   
 }
 ###conditional variance of treatment group DEW
-GLOW_12m_intervention_effect_var_1<-function(parameters_, population_, treatment_){ 
-  fitted_value<-matrix(parameters_[,"beta_intercept"]
-                       +parameters_[,"beta_hba1c_bl"]*population_[,"HBA"]
-                       +parameters_[,"beta_treatment"]*1 
-                       +parameters_[,"beta_female"]*population_[,"FEMALE"]
-                       +parameters_[,"beta_dm_duration_1_3"]*ifelse(population_[,"DIAB_DUR"]==1,0,1))
-  beta_conmean_1<-(exp(fitted_value)/(1+exp(fitted_value)))
-  scale_factor<-matrix(parameters_[,"beta_phi_intercept"]
-                       +(parameters_[,"beta_phi_hba1c_bl"]*population_[,"HBA"])
-                       +(parameters_[,"beta_phi_treatment"]*1)
-                       +(parameters_[,"beta_phi_hba1c_bl_treatment"]*(1*population_[,"HBA"])))
+GLOW_12m_intervention_effect_var_DEW<-function(parameters_, population_, treatment_){ 
+  fitted_value<-matrix(parameters_[,"beta_intercept_model1"]
+                       +parameters_[,"beta_hba1c_bl_model1"]*population_[,"HBA"]
+                       +parameters_[,"beta_treatment_model1"]*1 
+                       +parameters_[,"beta_male_model1"]*population_[,"MALE"]
+                       +parameters_[,"beta_dm_duration_1_model1"]*ifelse(population_[,"DIAB_DUR"]==1,1,0))
+  beta_conmean_DEW<-(exp(fitted_value)/(1+exp(fitted_value)))
+  scale_factor<-matrix(parameters_[,"beta_phi_intercept_model1"]
+                       +(parameters_[,"beta_phi_hba1c_bl_model1"]*population_[,"HBA"])
+                      +(parameters_[,"beta_phi_treatment_model1"]*1)
+                      +(parameters_[,"beta_phi_hba1c_bl_treatment_model1"]*(1*population_[,"HBA"])))
+  beta_convar_DEW<-(beta_conmean_DEW*(1-beta_conmean_DEW))/(1+exp(scale_factor))
   
-  beta_convar_1<-(beta_conmean_1*(1-beta_conmean_1))/(1+exp(scale_factor))
-  
-  return(beta_convar_1)
+  return(beta_convar_DEW)
 }
 ###conditional variance of treatment group DE
-GLOW_12m_intervention_effect_var_2<-function(parameters_, population_, treatment_){ 
-  fitted_value<-matrix(parameters_[,"beta_intercept"]
-                       +parameters_[,"beta_hba1c_bl"]*population_[,"HBA"]
-                       +parameters_[,"beta_treatment"]*2 
-                       +parameters_[,"beta_female"]*population_[,"FEMALE"]
-                       +parameters_[,"beta_dm_duration_1_3"]*ifelse(population_[,"DIAB_DUR"]==1,0,1))
-  beta_conmean_2<-(exp(fitted_value)/(1+exp(fitted_value)))
-  scale_factor<-matrix(parameters_[,"beta_phi_intercept"]
-                       +(parameters_[,"beta_phi_hba1c_bl"]*population_[,"HBA"])
-                       +(parameters_[,"beta_phi_treatment"]*2)
-                       +(parameters_[,"beta_phi_hba1c_bl_treatment"]*(2*population_[,"HBA"]))) #(population_[,"HBA"][alive_]*(if(GlobalVars_["treatment",]=="GLOW"){1} else if(GlobalVars_["treatment",]=="baseline"){0})))
+GLOW_12m_intervention_effect_var_DE<-function(parameters_, population_, treatment_){ 
+  fitted_value<-matrix(parameters_[,"beta_intercept_model1"]
+                       +parameters_[,"beta_hba1c_bl_model1"]*population_[,"HBA"]
+                       +parameters_[,"beta_treatment_model1"]*0
+                       +parameters_[,"beta_male_model1"]*population_[,"MALE"]
+                       +parameters_[,"beta_dm_duration_1_model1"]*ifelse(population_[,"DIAB_DUR"]==1,1,0))
+  beta_conmean_DE<-(exp(fitted_value)/(1+exp(fitted_value)))
+  scale_factor<-matrix(parameters_[,"beta_phi_intercept_model1"]
+                       +(parameters_[,"beta_phi_hba1c_bl_model1"]*population_[,"HBA"])
+                       +(parameters_[,"beta_phi_treatment_model1"]*0)
+                       +(parameters_[,"beta_phi_hba1c_bl_treatment_model1"]*(0*population_[,"HBA"]))) 
+
+  beta_convar_DE<-(beta_conmean_DE*(1-beta_conmean_DE))/(1+exp(scale_factor))
   
-  beta_convar_2<-(beta_conmean_2*(1-beta_conmean_2))/(1+exp(scale_factor))
-  
-  return(beta_convar_2)
+  return(beta_convar_DE)
 }
 
 
 
+  
 
 
 
@@ -197,21 +202,7 @@ GLOW_12m_intervention_effect_var_2<-function(parameters_, population_, treatment
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-######interventions for other risk factors not considered in GLoW analysis
+######interventions for other risk factors not considered in GLoW analysis - NOT IN USE
 ##'@param n_ is the number of patients in the model
 ##'@param treatment_ is a text term indicating the current treatment option
 ##'@param parameter_ is the row of the parameter matrix

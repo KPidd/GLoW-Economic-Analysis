@@ -8,10 +8,10 @@
 
 calculate_costs <- function(population_, parameters_, year_, alive_, GlobalVars_, random_numbs_, treatment_) {
   
-    if(treatment_=="bl"& year_==0){
+    if(treatment_=="DE"& year_==0){
       population_[,"INTVCOST"][alive_]<-parameters_[,"COST_DESMOND"]
     }
-    else if(treatment_=="GLOW"& year_==0){
+    else if(treatment_=="DEW"& year_==0){
       population_[,"INTVCOST"][alive_]<-parameters_[,"COST_DEW"]
     }
     else if(treatment_=="GLOW_beta_diff"& year_==0){
@@ -26,6 +26,8 @@ calculate_costs <- function(population_, parameters_, year_, alive_, GlobalVars_
     population_[,"MET2"][alive_] * parameters_[,"COST_MET2"] + 
     population_[,"INSU"][alive_] * parameters_[,"COST_INSU"]
   
+    population_[,"REMISSIONCOST"][alive_]<- population_[,"REMISSION"][alive_]*parameters_[,"COST_REM"]
+    
   ##adding cost of stat
   population_[,"STATCOST"][alive_] <- population_[,"STAT"][alive_]*parameters_[,"COST_STAT"]
   ##adding cost of anti hypertensive treatment (receiving an additional cost the first year receiving statins - which in this case is on entry? as so additional people are prescribed statins) 
@@ -110,7 +112,7 @@ population_[, "YearCOST"][alive_] <-population_[, "DMCOST"][alive_]+
   population_[, "CVDCOST"][alive_]+population_[, "NEPHCOST"][alive_]+
   population_[, "RETCOST"][alive_]+population_[, "NEUCOST"][alive_]+
   population_[, "CANCOST"][alive_]+population_[, "OSTCOST"][alive_]+
-  population_[, "DEPCOST"][alive_]+population_[, "OTHCOST"][alive_]
+  population_[, "DEPCOST"][alive_]+population_[, "OTHCOST"][alive_]+population_[,"REMISSIONCOST"][alive_]
 
 #store cumulative costs
 population_[, "COST"][alive_] <- population_[, "COST"][alive_]+

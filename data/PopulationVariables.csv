@@ -53,6 +53,7 @@ INTVCOST,cost of receiving intervention (usual care or treatment arm)
 STATCOST,cost of being on statins
 HYPCOST,cost of receiving antihypertensive treatment
 DMCOST,Diabetes related cots
+REMISSIONCOST,Cost of diabetes remission (includes observation costs but no drug costs)
 CVDCOST,CVD related costs
 RETCOST,Blindness (retinopathy) related costs
 NEPHCOST,Nephropathy (renal failure) related costs

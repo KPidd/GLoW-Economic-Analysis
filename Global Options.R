@@ -1,6 +1,6 @@
 #List of the global variables
-glo_vars <- c("n","run_psa","psa_count", "disc_rate_costs", "disc_rate_QALYs", "disc_rate_LYs",
-              "Population", "treatment", "Treatment_effect_duration_HBA","Treatment_effect_duration_BMI","Results_output", "KMmethod", "Number of cores")
+glo_vars <- c("n","Population Subset","run_psa","psa_count", "disc_rate_costs", "disc_rate_QALYs", "disc_rate_LYs",
+              "Population", "Treatment_effect_duration_HBA","Treatment_effect_duration_BMI","Results_output", "KMmethod", "Number of cores")
 
 ##get the length of glo_vars, for checking below
 length(glo_vars)
@@ -17,10 +17,13 @@ rm(glo_vars)
 GlobalVars["n", "Value"] <- 10000
 GlobalVars["n", "Description"] <- "The number of patients to run through the model"
 
+GlobalVars["Population Subset", "Value"] <- "A"
+GlobalVars["Population Subset", "Description"] <- "Which population subset to run through the model (A=1:20000, B=20001:40000, C=40001:60000, D=60001:80000, E=80001:100000)"
+
 GlobalVars["run_psa", "Value"] <- F
 GlobalVars["run_psa", "Description"] <- "T = run psa, F = run deterministic"
 
-GlobalVars["psa_count", "Value"] <- 2
+GlobalVars["psa_count", "Value"] <- 2000
 #Stop the model here if there is a discrepancy in the model mode and declared number 
 #of PSA runs
 if(is.numeric(GlobalVars["psa_count", "Value"])==T&GlobalVars["run_psa", "Value"]==F|
@@ -42,10 +45,6 @@ GlobalVars["Population", "Value"] <- "NICE First"
 GlobalVars["Population", "Description"] <- "text telling the model which population file to read in. Options are:
 NICE First, NICE Second, NICE Third. Triple check this before running the model."
 
-GlobalVars["treatment", "Value"] <- "GLOW"
-GlobalVars["treatment", "Description"] <- "text term for the treatment. Cross reference that this is called correctly
-in your code for creating an interventions effect matrix (should be in R/Interventions.R)"
-
 GlobalVars["Treatment_effect_duration_HBA", "Value"] <-5
 GlobalVars["Treatment_effect_duration_HBA", "Description"] <- "number of years of the treatment effect duration. Cross reference that this is called correctly
 in your code for creating an interventions effect matrix (should be in R/Interventions.R)"
@@ -55,7 +54,7 @@ GlobalVars["Treatment_effect_duration_BMI", "Description"] <- "number of years o
 in your code for creating an interventions effect matrix (should be in R/Interventions.R)"
 
 
-GlobalVars["Results_output", "Value"] <- "Patient Level"
+GlobalVars["Results_output", "Value"] <- "Summary"
 GlobalVars["Results_output", "Description"] <- "text term to produce different output types. Default is summary for PSA,
 set to Patient Level to get the patient matrix. If not specfied, the determinisitc model will return a detailed year by year summary"
 
@@ -71,5 +70,5 @@ GlobalVars["KMmethod", "Description"] <- "Text term to indicate the method for c
 the simulation. Options are Events or Probabilities. Events uses the events in the model, probabilities uses the estimated probabilities.
 Default is Events."
 
-GlobalVars["Number of cores", "Value"] <- 100
+GlobalVars["Number of cores", "Value"] <- 4
 GlobalVars["KMmethod", "Description"] <- "Number to declare the maximum number of cores to use when processing PSA results. Use this to decrease memory usage."
