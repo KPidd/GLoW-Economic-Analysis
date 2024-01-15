@@ -1,4 +1,4 @@
-To run this model you must install R and R studio. Our analyses were run in R version 4.3.0
+To run this model you must install R and R studio. Our analyses were run in R version 4.2.1
 
 Before running any models you should add a folder called "Results" to this directory with three subfolders called "Table 2 - Main Incremental Cost-effectiveness Analysis", "Table 3 - Sub-group analysis", "Table 4 - Sensitivity Analysis". 
 This folder is ingnored by git version control and contains the actual model results. 
