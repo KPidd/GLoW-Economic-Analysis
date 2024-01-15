@@ -44,4 +44,27 @@ Update Pat Chars.R - this contains the function that happens at the end of each 
 Cleaning Code.R - this file contains the code that summarizes the outputs from each arm for each model run.
 Combining Populations and Cleaning Results.R - this file contains the code to combine the population subsets and the results. It needs to be ran after all models are run through for all 10 population subsets. 
 
+Changes made from original model:
+Populations are sampled using trial data means and covariances.
+Parameters have been updated to include updated and additional costs, the new intervention effect, GP utilisation equation, new relative risks, updated utility decrement.
+R files:
+build_population.R – Update to new available sampled population data. Set baseline LDL and HDL to ensure consistent trajectories.
+Cancer Risks.R –U.
+Costs.R – Updated to include costs of intervention and diabetes remission and to estimate the GP utilisation and related costs.
+Depression.R – Unchanged.
+Generate Results Template.R – Updated to add new results into output.
+Generate Results.R - Updated to add new results into output.
+generate_random.R – Added random numbers for GP utilisation function.
+intervention.R – This has been updated to add intervention effect from the trial analysis or using the beta regression.
+LifeTableMortality.R – Unchanged.
+Oestoarthritis functions.R – Unchanged.
+QALYs.R – Unchanged.
+Run model.R – Updated to record different outputs.
+Run simulation.R – Updated to include new intervention effect and decay.
+UKPDS 82 risk functions.R – Unchanged.
+UKPDS 90 risk functions.R – Unchanged.
+Update Events.R – Added relative risks of MI and stroke and calibration.
+Update Pat Chars.R – Updated to estimate individuals going into diabetes remission. 
+Cleaning Code.R – Added to summarise outputs.
+Combining Populations and Cleaning Results.R – Added to combine populations ran separately.
 
