@@ -1,5 +1,5 @@
-#    Embedding RCT Health Economic Analysis using the Sheffield Type 2 Diabetes Treatment Model - version 3
-#    Copyright (C) 2023  Pollard, Pidd, Breeze, Brennan, Thomas
+#    Sheffield Type 2 Diabetes Treatment Model version 4.0: with the GLoW Trial health economic analysis implemented.
+#    Copyright (C) 2023 Pidd, Pollard, Breeze, Bates, Thomas, Mueller, Ahern, Griffin, Brennan
 
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 #    with this program; if not, write to the Free Software Foundation, Inc.,
 #    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-#    Contact person: Dan Pollard, Email: d.j.pollard@sheffield.ac.uk, 
+#    Contact person: Katharine Pidd, Email: k.pidd@sheffield.ac.uk, 
 #    Address: Regent Court, 30 Regent Court, Sheffield, United Kingdom, S1 4DA
 
 
