@@ -97,7 +97,7 @@ saveRDS(run.time_Mixed_F2F,"Results/Table 2 - Main Incremental Cost-effectivenes
 ##################       assumes F2F delivery ONLY
 parameter_F2F<-parameter
 #replace COST_DESMOND with F2F cost
-parameter_F2F[,"COST_DESMOND"]<-267.54
+parameter_F2F[,"COST_DESMOND"]<-264.88
 
 start.time_F2F <- Sys.time()
 resultsDE_F2F <- run_model(population_clean, 
@@ -695,7 +695,7 @@ GlobalVars["Treatment_effect_duration_HBA", "Value"] <-5
 GlobalVars["Treatment_effect_duration_BMI", "Value"] <-10
 #replace COST_DESMOND with Optimistic cost
 parameter_OptimisticUtil<-parameter
-parameter_OptimisticUtil[,"COST_DESMOND"]<-95.05
+parameter_OptimisticUtil[,"COST_DESMOND"]<-96.06
 
 start.time_OptimisticUtil <- Sys.time()
 resultsDE_OptimisticUtil <- run_model(population_clean, 
@@ -755,4 +755,18 @@ rm(resultsDE_zerobmidec)
 rm(resultsDEW_zerobmidec)
 rm(Table4_zerobmidec)
 rm(parameter_zerobmidec)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

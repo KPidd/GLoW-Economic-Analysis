@@ -39,7 +39,7 @@ GlobalVars["n", "Description"] <- "The number of patients to run through the mod
 GlobalVars["Population Subset", "Value"] <- "A"
 GlobalVars["Population Subset", "Description"] <- "Which population subset to run through the model (A=1:20000, B=20001:40000, C=40001:60000, D=60001:80000, E=80001:100000)"
 
-GlobalVars["run_psa", "Value"] <- F
+GlobalVars["run_psa", "Value"] <- T
 GlobalVars["run_psa", "Description"] <- "T = run psa, F = run deterministic"
 
 GlobalVars["psa_count", "Value"] <- 2000
